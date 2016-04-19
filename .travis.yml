@@ -13,7 +13,6 @@ before_install:
   - "sudo apt-get install python-pygame"
 
 install:
-  - "pip install pygame"
   - "python setup.py install"
 
 script: "nose2 --plugin nose2.plugins.layers --log-capture -v"
