@@ -13,8 +13,9 @@ before_install:
   - "sudo apt-get install mercurial"
   - "hg clone https://bitbucket.org/pygame/pygame"
   - "cd pygame"
-  - "python setup.py build"
-  - "sudo python setup.py install"
+  - "yes Y | python setup.py build"
+  - "yes Y | sudo python setup.py install"
+  - "cd .."
 
 install:
   - "python setup.py install"
