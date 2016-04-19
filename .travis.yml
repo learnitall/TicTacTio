@@ -10,7 +10,11 @@ python:
 before_install:
   - "sudo apt-get update"
   - "sudo apt-get build-dep python-pygame"
-  - "sudo apt-get install python-pygame"
+  - "sudo apt-get install mercurial"
+  - "hg clone https://bitbucket.org/pygame/pygame"
+  - "cd pygame"
+  - "python setup.py build"
+  - "sudo python setup.py install"
 
 install:
   - "python setup.py install"
