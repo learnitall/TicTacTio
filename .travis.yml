@@ -18,5 +18,6 @@ install:
   - "cd pygame"
   - "yes Y | python setup.py build"
   - "yes Y | sudo python setup.py install"
+  - "cd .."
 
 script: "nose2 --plugin nose2.plugins.layers --log-capture -v"
