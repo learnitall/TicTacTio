@@ -1,4 +1,5 @@
 language: Python
+sudo: required
 
 os:
   - linux
@@ -6,7 +7,6 @@ os:
 
 python:
   - "2.7"
-  - "pypy"
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
@@ -15,6 +15,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source venv/bin/activate; fi
 
 install:
+  - "sudo apt-get install python-pygame"
   - "python setup.py install"
 
 script: "nose2 --plugin nose2.plugins.layers --log-capture -v"
