@@ -1,0 +1,9 @@
+include README.md
+include LICENSE.txt
+include VERSION.txt
+include data/*
+include CHANGES.md
+include .travis.yml
+include setup.cfg
+include setup.py
+include .gitignore
