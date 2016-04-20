@@ -129,7 +129,7 @@ with such.A("system running on linux, windows or osx, python version 2.7") as it
                 assert result[1] == 0
             except:
                 if result[1] == 1 and pygame.mixer.get_init() is None:
-                    logging.warning("WARNING: pygame mixer is not initializing properly, however since this is not"
+                    logging.warning("WARNING: pygame mixer is not initializing properly, however since this is not "
                                     "required the test passes")
                 else:
                     raise AssertionError()
@@ -137,8 +137,6 @@ with such.A("system running on linux, windows or osx, python version 2.7") as it
     with it.having('a properly working start menu instance'):
         @it.has_setup
         def setup():
-            import pygame
-            pygame.init()
             it.start_menu = tttoe.TTTGameStartMenu
 
         @it.has_teardown
@@ -147,8 +145,14 @@ with such.A("system running on linux, windows or osx, python version 2.7") as it
 
         @it.should('initiate without any errors being raise')
         def test():
-            logging.info("Creating start menu")
-            it.start_menu()
-            logging.info("Start menu created")
+            logging.info("Checking to see if screen exists...")
+            window_size = it.start_menu.calculateWindowSize()
+            if window_size[0] == 0 or window_size[1] == 0:
+                logging.warning("Unable to properly test start menu, as the screen size was calculated to be invalid "
+                                "(is a monitor being used?)")
+            else:
+                logging.info("Creating start menu")
+                it.start_menu()
+                logging.info("Start menu created")
 
 it.createTests(globals())
