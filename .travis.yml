@@ -12,6 +12,7 @@ before_install:
   - "sudo apt-get -y install mercurial python-dev libav-tools libv4l-dev"
   - "cd /usr/include/linux"
   - "sudo ln -s ../libv4l1-videodev.h videodev.h"
+  - "cd $TRAVIS_BUILD_DIR"
   - "sudo apt-get -y install libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsmpeg-dev"
   - "sudo apt-get -y install libsdl1.2-dev  libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev"
 
