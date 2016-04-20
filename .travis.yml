@@ -7,17 +7,14 @@ os:
 python:
   - "2.7"
 
+virtualenv:
+  - system_site_packages: true
+
 before_install:
   - "sudo apt-get update"
-  - "sudo apt-get build-dep python-pygame"
-  - "sudo apt-get install mercurial"
+  - "sudo apt-get -y install python-pygame"
 
 install:
   - "python setup.py install"
-  - "hg clone https://bitbucket.org/pygame/pygame"
-  - "cd pygame"
-  - "yes Y | python setup.py build"
-  - "yes Y | sudo python setup.py install"
-  - "cd .."
 
 script: "nose2 --plugin nose2.plugins.layers --log-capture -v"
