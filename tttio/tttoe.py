@@ -494,6 +494,16 @@ class TTTGameStartMenu(object):
 
         self.setCurrentMenu(self.menus['StartMen'])
 
+    @staticmethod
+    def calculateWindowSize():
+        """
+        Calculates the size of the window based on the dimensions of the screen (window is set to 4/5ths of screen
+        rounded to the least int)
+        :return: (w, h)
+        """
+
+        return (int(pygame.display.Info().current_h * (4 / 5.0)), ) * 2
+
     def createScreen(self):
         """
         Creates the screen that will be used to draw on. Sets the size of the surface to a square where each side
@@ -501,7 +511,7 @@ class TTTGameStartMenu(object):
         :return: The screen object
         """
 
-        size = (int(pygame.display.Info().current_h * (4 / 5.0)), ) * 2
+        size = self.calculateWindowSize()
         logging.debug("Size was calculated to: {}".format(size))
         display = pygame.display.set_mode(size)
         pygame.display.set_caption("Tic Tac Ti/o")
