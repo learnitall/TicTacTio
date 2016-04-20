@@ -502,6 +502,7 @@ class TTTGameStartMenu(object):
         """
 
         size = (int(pygame.display.Info().current_h * (4 / 5.0)), ) * 2
+        logging.debug("Size was calculated to: {}".format(size))
         display = pygame.display.set_mode(size)
         pygame.display.set_caption("Tic Tac Ti/o")
         return display
