@@ -61,7 +61,7 @@ one](http://neverstopbuilding.com/minimax) to see how they compare.
 Installation is pretty simple, after installing dependencies and Python v2.7, download the source from GitHub and run
 ```
 python setup.py install
-```. 
+```
 
 ## Starting the game
 ---
