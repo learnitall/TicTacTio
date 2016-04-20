@@ -38,7 +38,7 @@ setup(
     ],
     keywords='TicTacToe machine learning ml genetic algorithms ga neural networks multiplayer pygame',
     packages=['tttio', 'tests'],
-    install_requires=['nose2'],
+    install_requires=['nose2', 'numpy'],
     test_suite='nose2.collector.collector',
     include_package_data=True
 )
