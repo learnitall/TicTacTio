@@ -14,7 +14,7 @@ before_install:
   - "sudo apt-get -y install libsdl1.2-dev  libportmidi-dev libswscale-dev libavformat-dev libavcodec-dev"
 
 install:
-  - "pip install pygame"
+  - "pip install http://www.pygame.org/ftp/pygame-1.9.1release.tar.gz"
   - "python setup.py install"
 
 script: "nose2 --plugin nose2.plugins.layers --log-capture -v"
