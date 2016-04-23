@@ -40,25 +40,39 @@ is exported to a file. (To see the actual values that I used at each step, see t
 Eventually, I do want to add a gradient descent training workflow and just hard code an algorithm [something like this
 one](http://neverstopbuilding.com/minimax) to see how they compare. 
 
-## Dependencies
+## Dependencies<a name="dependencies"></a>
 ---
 
+* [Python](www.python.org)
+    * TicTacTio is run with Python2.7, which can be installed using apt:
+   ```
+   sudo apt-get install python2.7
+   ```
+
 * [Pygame](www.pygame.org)
-    * To install, use apt: 
+    * All of the GUI was written with pygame, which can yet again be installed with apt: 
     ```
     sudo apt-get install python-pygame
     ```
     
-* [Nose2](https://nose2.readthedocs.org/en/latest/) (only needed if running test scripts)
-    * Can be installed using pip:
+* [Nose2](https://nose2.readthedocs.org/en/latest/)
+    * Used to run test scripts. This one is installed using pip:
     ```
     sudo pip install nose2
     ```
+    
+***Note:*** apt is specific to certain linux distros (Mint, Ubuntu, etc.). Be sure to use the package manager for your
+operating system.
 
 ## Installation
 ---
 
-Installation is pretty simple, after installing dependencies and Python v2.7, download the source from GitHub and run
+Installation is pretty simple, and only requires 6 steps: 
+
+1. Install [dependencies](#dependencies)
+2. Download zip of [master branch](https://github.com/DevelopForLizardz/TicTacTio/archive/master.zip)
+3. Unpack using an archive manager
+4. Run the setup.py file:
 ```
 python setup.py install
 ```
