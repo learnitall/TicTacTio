@@ -76,11 +76,14 @@ tttoe.main()
 ## Running tests
 ---
 
-I had some troubles get the nose2 config file to work, so in the mean time the layers plugin and log capturing have to
-be enabled automatically:
+Running tests is pretty easy, just cd into the package directory and then run nose2.
+
+*Please note:* The nose2.cfg file is necessary in order for the tests to work, as it enables both the layers plugin and
+log capture. If for some reason the cfg file isn't being loaded (I've had issues with this in the past), make sure to 
+enable these manually:
 
 ```
-nose2 --plugin nose2.plugins.layers --log-capture -v
+nose2 --plugin nose2.plugins.layers --log-capture
 ```
 
 ## License - MIT
