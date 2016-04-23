@@ -43,39 +43,30 @@ one](http://neverstopbuilding.com/minimax) to see how they compare.
 ## Dependencies<a name="dependencies"></a>
 ---
 
-* [Python](www.python.org)
-    * TicTacTio is run with Python2.7, which can be installed using apt:
-   ```
-   sudo apt-get install python2.7
-   ```
+
+***Note*** I am developing on Linux Mint, so all installation examples are specific to apt. This means that the 
+installation process for these dependencies will be different on other distros that use other package managers
+
+* [Python2.7](www.python.org)
+```
+sudo apt-get install python2.7
+```
 
 * [Pygame](www.pygame.org)
-    * All of the GUI was written with pygame, which can yet again be installed with apt: 
-    ```
-    sudo apt-get install python-pygame
-    ```
+```
+sudo apt-get install python-pygame
+```
     
-* [Nose2](https://nose2.readthedocs.org/en/latest/)
-    * Used to run test scripts. This one is installed using pip:
-    ```
-    sudo pip install nose2
-    ```
-    
-***Note:*** apt is specific to certain linux distros (Mint, Ubuntu, etc.). Be sure to use the package manager for your
-operating system.
+* [Nose2](https://nose2.readthedocs.org/en/latest/) (used to run tests)
+```
+sudo pip install nose2
+```
 
 ## Installation
 ---
 
-Installation is pretty simple, and only requires 6 steps: 
-
-1. Install [dependencies](#dependencies)
-2. Download zip of [master branch](https://github.com/DevelopForLizardz/TicTacTio/archive/master.zip)
-3. Unpack using an archive manager
-4. Run the setup.py file:
-```
-python setup.py install
-```
+Installation is pretty simple, just download and unpack the 
+[master branch](https://github.com/DevelopForLizardz/TicTacTio/archive/master.zip) and use setup.py to your liking.
 
 ## Starting the game
 ---
