@@ -13,15 +13,14 @@ import ai
 
 class TTTPlayer(object):
     """
-    Base ttt player. All subclasses must have the game_piece and game args as the first two arguments- in that order- in
+    Base ttt player. All subclasses must have the game_piece as the first argument, in
     order to preserve compatibility with the way that the TTTGame class is set up.
     """
 
-    def __init__(self, game_piece, game):
+    def __init__(self, game_piece):
         """
         Create the player
         :param game_piece: 'x' or 'o'
-        :param game: the TTTGame class, that holds the game board and other important variables needed
         :return: None
         """
 
@@ -29,12 +28,30 @@ class TTTPlayer(object):
             raise ValueError("Invalid game piece: {}. Game piece should be either 'x' or 'o'".format(game_piece))
         else:
             self.gp = game_piece
-        self.game = game
+
+        self.game = None
+        self.curCol = None
+
+    def setCursorCol(self):
+        """
+        (Re)sets the cursor color to the board's color for this classes game piece
+        :return: The color the cursor was set to
+        """
 
         if self.gp == 'x':
             self.curCol = self.game.board.xCol
         elif self.gp == 'o':
             self.curCol = self.game.board.oCol
+
+        return self.curCol
+
+    def setGame(self, game):
+        """
+        Sets self.game to the given one
+        """
+
+        self.game = game
+        self.setCursorCol()
 
     def playPiece(self, pos, draw=True, color=None):
         """
@@ -58,12 +75,12 @@ class TTTPlayer(object):
 
     def getMove(self, timeout=60):
         """
-        'Abstract' class for the getMove function. Should be overwritten.
+        'Abstract' getMove function. Should be overwritten.
         :param timeout: how many seconds the player has to make a move.
         :return: (col, row) of player's chosen move
         """
 
-        return "This function has not been overwritten!"
+        return "mymove"
 
 
 class TTTHumanPlayer(TTTPlayer):
@@ -71,29 +88,43 @@ class TTTHumanPlayer(TTTPlayer):
     Human TTT Player
     """
 
-    def __init__(self, game_piece, game, control_set="wasd"):
+    def __init__(self, game_piece, control_set="wasd"):
         """
         Create the player
         :param game_piece: 'x' or 'o'
-        :param game: the TTTGame class, that holds the game board and other important variables needed
         :param control_set: can be 'wasd' or 'arrows'
         :return: None
         """
 
-        super(TTTHumanPlayer, self).__init__(game_piece, game)
+        super(TTTHumanPlayer, self).__init__(game_piece)
+        self.control_set = control_set
+        self.controls = []
+        self.values = []
+        self.keys = []
+
+    def setGame(self, game):
+        """
+        Overwrites parent class' setGame method. Calls the parent's method and then self.setControls
+        """
+
+        super(TTTHumanPlayer, self).setGame(game)
+        self.setControls()
+
+    def setControls(self):
+        """
+        Setups the controls for the class. setGame must be called first in order for this to run correctly
+        """
 
         self.controls = []
         self.values = [self.game.board.callable, self.game.board.mvCurUp, self.game.board.mvCurDown,
                        self.game.board.mvCurLeft, self.game.board.mvCurRight]
-        if control_set == "arrows":
+        if self.control_set == "arrows":
             self.keys = [pygame.K_RETURN, pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]
         else:
             self.keys = [pygame.K_SPACE, pygame.K_w, pygame.K_s, pygame.K_a, pygame.K_d]
 
         for i in range(len(self.keys)):
             self.controls.append([self.keys[i], self.values[i]])
-
-        self.game = game
 
     def getMove(self, timeout=60):
         """
@@ -143,7 +174,7 @@ class TTTAiPlayer(TTTPlayer):
     A.I. TTT player.
     """
 
-    def __init__(self, game_piece, game, neural_net, default=False):
+    def __init__(self, game_piece, neural_net, default=False):
         """
         Create the ai player
         :param neural_net: Path to an exported neural net to be used as the brains of the A.I.
@@ -151,7 +182,7 @@ class TTTAiPlayer(TTTPlayer):
         this argument is True then the neural_net argument will be ignored
         """
 
-        super(TTTAiPlayer, self).__init__(game_piece, game)
+        super(TTTAiPlayer, self).__init__(game_piece)
         if default:
             self.neuralNet = ai.TTTNeuralNet.load(ai.DEFAULT_AI_PATH)
         else:
@@ -171,11 +202,12 @@ class TTTAiPlayer(TTTPlayer):
 
         pygame.display.flip()
         self.game.clock.tick(self.game.fps)
-        pygame.event.post(pygame.event.Event(pygame.USEREVENT))  # posting an event keeps the game loop going
+        pygame.event.post(pygame.event.Event(pygame.USEREVENT, {}))  # posting an event keeps the game loop going
         return move
 
 
-class TTTLanHumanPlayer(TTTHumanPlayer):
+# this is here for when the multiplayer will be properly added
+class _TTTLanHumanPlayer(TTTHumanPlayer):
     """
     LAN human player for playing online with other people. Works by creating a TCP stream connection in a socket on port
     54541. During the player's turn, this class will send cursor and move information to the other instance and

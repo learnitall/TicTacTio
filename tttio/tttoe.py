@@ -35,14 +35,18 @@ class TTTGame(object):
     Takes a board, two players and a control panel and starts a ttt game.
     """
 
-    def __init__(self, x_first=True, player_classes=None, screen=None, size=(620, 620), board_size=(600, 600),
-                 board_offset=(10, 10), lw=10):
+    def __init__(self, x_first=True, players=(), singleplayer=False,
+                 screen=None, size=(620, 620), board_size=(600, 600), board_offset=(10, 10), lw=10):
         """
         Create the game
         :param x_first: If True, then x will go first, otherwise o will.
-        :param player_classes: In order to specify which player classes to use for the game, set to a list containing:
-        [[player class, {'args': args, 'kwargs': kwargs}], [second player class, {'args': etc, etc.]]. The game
-        argument should not be specified and instead will be inserted in
+        :param players: Players to use in the game. Only one player can be passed, however it must still be inside
+        a tuple
+        :param singleplayer: If True (and one player was passed in the players kwarg), will make sure that
+        there is one ai player and one human player, if false will make sure there are two human players. If
+        no players were passed in the players arg then a human player will always be assigned to the o game piece
+        and if singleplayer is true, then an ai player will be assigned to the x piece, otherwise
+        if singleplayer is false then another human player will be assigned to the x piece.
         :param screen: Pygame screen object to use for the game.
         :param screen, size, board_size, board_offset, lw: options to be passed to the TTTGraphicalBoard.
         :return: None
@@ -70,40 +74,49 @@ class TTTGame(object):
         self.board = TTTGraphicalBoard(self.screen, self.bs, self.bo, self.blw)
 
         self.players = {'x': None, 'o': None}
-        if player_classes is not None and issubclass(player_classes[0][0], TTTPlayer) and issubclass(
-                player_classes[1][0], TTTPlayer):
-            for x in range(2):
-                # copying the list of args prevents changing the 'master' list of args in the variable that was passed
-                # to the player_classes argument
-                args = [arg for arg in player_classes[x][1]['args']]
-                args.insert(1, self)
-                player = player_classes[x][0](*args, **player_classes[x][1]['kwargs'])
-                if player.gp == 'x':
-                    self.players['x'] = player
-                elif player.gp == 'o':
-                    self.players['o'] = player
+        if len(players) > 0:
+            for player in players[:2]:
+                if not isinstance(player, TTTPlayer):
+                    if issubclass(player, TTTPlayer):
+                        self.players[player.gp] = player
+                else:
+                    # this bit of code checks to make sure the getMove() function of the TTTPlayer instance is
+                    # overwritten.
+                    try:
+                        result = player.getMove()
+                        assert result != 'myMove'  # returned by default getMove() func that needs to be overwritten
+                    except TypeError:  # raised when more or less args are passed than expected
+                        pass
+                    except AssertionError:
+                        raise AttributeError("The getMove method of the player instance with game piece {} was not "
+                                             "overwritten!".format(player.gp))
+
+                    self.players[player.gp] == player  # this is unreachable if the assertion fails
+            # makes other player a human player if singleplayer is false or it is true and an ai player was given,
+            # makes other player an ai player if singleplayer is true and a human player was given
+            if len(players) == 1:
+                gps = ['x', 'o']
+                # this setup allows for gp[1] to be the opposite game piece to gp[0] (gp[0] == 'o', gp[1] == 'x', and
+                # vice versa)
+                for gp in [gps, gps[::-1]]:
+                    if self.players[gp[0]] is None:
+                        if singleplayer is True:
+                            if isinstance(self.players[gp[1]], TTTAiPlayer):
+                                self.players[gp[0]] = TTTHumanPlayer(gp[0])
+                            else:
+                                self.players[gp[0]] = TTTAiPlayer(gp[0], PATH_TO_AI)
+                        else:
+                            self.players[gp[0]] = TTTHumanPlayer(gp[0])
         else:
-            self.createPlayers()
+            if singleplayer is True:
+                self.players['x'] = TTTAiPlayer('x', PATH_TO_AI)
+            else:
+                self.players['x'] = TTTHumanPlayer('x', control_set="wasd")
 
-    def createPlayers(self, p1_cons="arrows", p2_cons="wasd"):
-        """
-        Creates two human players. Can be called again to re-create players after initial in __init__
-        :param p1_cons: controls to use for player 1 ("arrows" or "wasd")
-        :param p2_cons: controls to use for player2 ("arrows" or "wasd")
-        :return: None
-        """
+            self.players['o'] = TTTHumanPlayer('o', control_set="arrows")
 
-        self.players['x'] = TTTHumanPlayer('x', game=self, control_set=p1_cons)
-        self.players['o'] = TTTHumanPlayer('o', game=self, control_set=p2_cons)
-
-    def setPlayers(self, players):
-        """
-        Sets self.players to the (most likely child) instances of the TTTPlayer class found in the player arg
-        :param players: list of two player class instances from the players module
-        """
-
-        self.players['x'] = players[0] if players[0].gp == 'x' else players[1]
-        self.players['o'] = players[1] if players[1].gp == 'o' else players[0]
+        for gp in ['x', 'o']:
+            self.players[gp].setGame(self)
 
     def main(self):
         """
@@ -145,8 +158,8 @@ class TTTGame(object):
         self.gameOver = False
         self.board.reset()
         return winner
-
-
+        
+    
 def checkMenuInstance(func):
     """
     This wrapper is used for the methods in the next classes that display menus, for it checks to make sure that the
@@ -447,18 +460,14 @@ class TTTGameStartMenu(object):
                 }
             }
 
-            single_player_classes = [[TTTHumanPlayer, {'args': ['x'], 'kwargs': {'control_set': 'arrows'}}],
-                                     [TTTAiPlayer, {'args': ['o', PATH_TO_AI], 'kwargs': {}}]]
             github_link = 'https://github.com/DevelopForLizardz/TicTacTio.git'
             self.menuActions = {
                 'StartMen': {
                     'Quit': self.exitLoop
                 },
                 'Singleplayer': {
-                    'Player goes first': TTTGame(x_first=True, screen=self.screen,
-                                                 player_classes=single_player_classes).main,
-                    'A.I. goes first': TTTGame(x_first=False, screen=self.screen,
-                                               player_classes=single_player_classes).main
+                    'Player goes first': TTTGame(x_first=False, screen=self.screen, singleplayer=True).main,
+                    'A.I. goes first': TTTGame(x_first=True, screen=self.screen, singleplayer=True).main
                 },
                 'Multiplayer': {
                     'Same keyboard': TTTGame(screen=self.screen).main
