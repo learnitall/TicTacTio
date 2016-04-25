@@ -51,8 +51,8 @@ class TTTNeuron(object):
         self.numInputs = num_inputs
         self.weights = weights if weights is not None else []
         self.bias = bias if bias is not None else 0
-        self.WEIGHTSRANGE = (-0.001, 0.001)
-        self.BIASRANGE = (-0.1, 0.1)
+        self.WEIGHTSRANGE = (-1, 1)
+        self.BIASRANGE = (-7.5, 7.5)
         if weights is None and bias is None:
             self.generate()
 
@@ -280,9 +280,7 @@ class TTTNeuralNet(object):
         """
 
         input_set = [self.pieceValues[0] if turn == 'x' else self.pieceValues[1]]
-        print input_set
         [input_set.extend([self.pieceValues[0] if b == 'x' else self.pieceValues[1] for b in a]) for a in sBoard]
-        print input_set
 
         output = self.feed(input_set)
         highest = 0

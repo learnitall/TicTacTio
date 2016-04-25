@@ -9,9 +9,71 @@ import datetime
 from nose2.tools import such
 from tttio import ai, boards, tttoe
 
-with such.A("system running on linux, windows or osx, python version 2.7") as it:
+with such.A('system running on linux, windows or osx, python version 2.7') as it:
 
-    with it.having("a working trainer class instance"):
+    with it.having('all data files are in the correct location'):
+        @it.has_setup
+        def setup():
+            # forms the path HERE/../data b/c the package is setup like this: TicTacTio -> (tests, data, etc.)
+            it.data_dir = os.path.join(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..'), 'data')
+            it.data_files = ['ai_default.txt', 'background.jpg']
+
+
+        @it.has_teardown
+        def teardown():
+            del it.data_dir
+            del it.data_files
+
+
+        @it.should('have files named ai_default and background.jpg inside the data folder')
+        def test():
+            for data_file in it.data_files:
+                data_file_loc = os.path.join(it.data_dir, data_file)
+                logging.info("Testing if {} exists".format(data_file_loc))
+                assert os.path.exists(data_file_loc)
+
+    with it.having('asserted pygame is installed'):
+        @it.should('import and initate pygame without any issues')
+        def test():
+            logging.info("Importing pygame")
+            import pygame
+            result = pygame.init()
+            logging.info("Result of initiating pygame: {}".format(result))
+
+            if result[1] != 0:
+                if result[1] == 1 and pygame.mixer.get_init() is None:
+                    logging.warning("WARNING: pygame mixer module is not initializing properly, however since this is "
+                                    "not required the test will still pass.")
+                else:
+                    logging.error("ERROR: Unable to properly initialize pygame (from pygame: {})".format(
+                        pygame.get_error()))
+                    raise AssertionError()
+            # otherwise the test passes
+
+    with it.having('a properly working start menu instance'):
+        @it.has_setup
+        def setup():
+            it.start_menu = tttoe.TTTGameStartMenu
+
+
+        @it.has_teardown
+        def teardown():
+            del it.start_menu
+
+
+        @it.should('initiate and run start menu class w/o any errors being raise')
+        def test():
+            logging.info("Checking to see if screen exists...")
+            window_size = it.start_menu.calculateWindowSize()
+            if window_size[0] == 0 or window_size[1] == 0:
+                logging.warning("Unable to properly test start menu, as the screen size was calculated to be invalid "
+                                "(is a monitor being used?)")
+            else:
+                logging.info("Creating and running start menu")
+                it.start_menu()
+                logging.info("Start menu has been created and run")
+
+    with it.having('a working trainer class instance'):
         @it.has_setup
         def setup():
             # creates the trainer class
@@ -22,7 +84,7 @@ with such.A("system running on linux, windows or osx, python version 2.7") as it
         def teardown():
             del it.trainer
 
-        @it.should("pass through 10 generations of training by calling TTTrainer.train w/o any errors")
+        @it.should('pass through 10 generations of training by calling TTTrainer.train w/o any errors')
         def test():
             start = datetime.datetime.now()
             logging.info("Start time: {}".format(start))
@@ -30,7 +92,7 @@ with such.A("system running on linux, windows or osx, python version 2.7") as it
             logging.info("End time: {}. Result had a fitness score of {}.".format(datetime.datetime.now() - start,
                                                                                   result))
 
-    with it.having("a working checkForWin method in a board instance"):
+    with it.having('a working checkForWin method in a board instance'):
         @it.has_setup
         def setup():  # defines test_cases as {who_should_win: [board to use], [last moves to check]} and creates board
             # ties will be tested in a new layer
@@ -99,60 +161,5 @@ with such.A("system running on linux, windows or osx, python version 2.7") as it
             logging.info("Done")
             logging.info("{} board checks done in {} ({} checks per second)".format(num_tests, finished, cpm))
 
-    with it.having('all data files are in the correct location'):
-        @it.has_setup
-        def setup():
-            # forms the path HERE/../data b/c the package is setup like this: TicTacTio -> (tests, data, etc.)
-            it.data_dir = os.path.join(os.path.join(os.path.abspath(os.path.dirname(__file__)), '..'), 'data')
-            it.data_files = ['ai_default.txt', 'background.jpg']
-
-        @it.has_teardown
-        def teardown():
-            del it.data_dir
-            del it.data_files
-
-        @it.should('have files named ai_default and background.jpg inside the data folder')
-        def test():
-            for data_file in it.data_files:
-                data_file_loc = os.path.join(it.data_dir, data_file)
-                logging.info("Testing if {} exists".format(data_file_loc))
-                assert os.path.exists(data_file_loc)
-
-    with it.having('asserted pygame is installed'):
-        @it.should('import and initate pygame without any issues')
-        def test():
-            logging.info("Importing pygame")
-            import pygame
-            result = pygame.init()
-            logging.info("Result of initiating pygame: {}".format(result))
-            try:
-                assert result[1] == 0
-            except:
-                if result[1] == 1 and pygame.mixer.get_init() is None:
-                    logging.warning("WARNING: pygame mixer is not initializing properly, however since this is not "
-                                    "required the test passes")
-                else:
-                    raise AssertionError()
-
-    with it.having('a properly working start menu instance'):
-        @it.has_setup
-        def setup():
-            it.start_menu = tttoe.TTTGameStartMenu
-
-        @it.has_teardown
-        def teardown():
-            del it.start_menu
-
-        @it.should('initiate without any errors being raise')
-        def test():
-            logging.info("Checking to see if screen exists...")
-            window_size = it.start_menu.calculateWindowSize()
-            if window_size[0] == 0 or window_size[1] == 0:
-                logging.warning("Unable to properly test start menu, as the screen size was calculated to be invalid "
-                                "(is a monitor being used?)")
-            else:
-                logging.info("Creating start menu")
-                it.start_menu()
-                logging.info("Start menu created")
 
 it.createTests(globals())
