@@ -1,5 +1,13 @@
 # Changelog for TicTacTio
 
+## 0.9.1
+---
+
+* Added multiprocessing to TTTrainer class, making training the A.I. quicker
+* Changed way in which games are initiated, from the perspective of creating players
+* Added stream handler to logger and allowed for log files to be rotated
+* Fixed some issues with the readme file
+
 ## 0.9
 ---
 
