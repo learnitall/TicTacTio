@@ -14,13 +14,22 @@ Logging config occurs in the __init__.py file included in this package
 from numpy import random
 import math
 import os
+import multiprocessing as mp
 import logging
 from boards import TTTBoard
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
-DEFAULT_AI_PATH = os.path.join(_here, os.path.join(os.path.join('..', 'data'), 'ai_default.txt'))
-AI_PATH = DEFAULT_AI_PATH
+_data = os.path.join(os.path.join(_here, '..'), 'data')
+DEFAULT_AI_PATH = os.path.join(_data, 'ai_default.txt')
+AI_PATH = os.path.join(_data, 'ai.txt')
+
+# values add or subtracted to a nets fitness while it is being trained (based on the circumstances)
+GAMEWIN = 30
+GAMELOSS = -30
+TIEGAME = 15
+BLOCKOPP = 10
+OVERLAPDOC = -40
 
 
 class TTTNeuron(object):
@@ -42,8 +51,8 @@ class TTTNeuron(object):
         self.numInputs = num_inputs
         self.weights = weights if weights is not None else []
         self.bias = bias if bias is not None else 0
-        self.WEIGHTSRANGE = (-1.0, 1.0)
-        self.BIASRANGE = (-7.5, 7.5)
+        self.WEIGHTSRANGE = (-0.001, 0.001)
+        self.BIASRANGE = (-0.1, 0.1)
         if weights is None and bias is None:
             self.generate()
 
@@ -157,7 +166,7 @@ class TTTNeuralNet(object):
     it is), one hidden network containing nine neurons and nine output neurons.
     """
 
-    pieceValues = [10, 5, 0]  # x, o, empty
+    pieceValues = [0.001, 0.01, 0]  # x, o, empty
 
     def __init__(self, layers=None, fitness=0):
         """
@@ -177,60 +186,6 @@ class TTTNeuralNet(object):
         self.mutateChances = [0.05,  # 5% chance of executing mutate task 1
                               47.55,  # 47.5% chance of executing mutate task 2
                               1]  # 47.5% chance of executing mutate task 3
-
-    def __eq__(self, other):
-        """
-        Determines the behavior for the == operator when used on this class and another of the same type.
-        Compares the fitness parameter.
-        :param other: Other net to compare to.
-        """
-
-        return self.fitness == other.fitness
-
-    def __ne__(self, other):
-        """
-        Determines the behavior for the != operator when used on this class and another of the same type. Compares
-        the fitness parameter
-        :param other: Other net to compare to.
-        """
-
-        return self.fitness != other.fitness
-
-    def __lt__(self, other):
-        """
-        Determines the behavior for the < operator when used on this class and another of the same type. Compares
-        the fitness parameter
-        :param other: Other net to compare to.
-        """
-
-        return self.fitness < other.fitness
-
-    def __gt__(self, other):
-        """
-        Determines the behavior for the > operator when used on this class and another of the same type. Compares
-        the fitness parameter
-        :param other: Other net to compare to.
-        """
-
-        return self.fitness > other.fitness
-
-    def __le__(self, other):
-        """
-        Determines the behavior for the <= operator when used on this class and another of the same type. Compares
-        the fitness parameter
-        :param other: Other net to compare to.
-        """
-
-        return self.fitness <= other.fitness
-
-    def __ge__(self, other):
-        """
-        Determines the behavior for the >= operator when used on this class and another of the same type. Compares
-        the fitness parameter
-        :param other: Other net to compare to.
-        """
-
-        return self.fitness >= other.fitness
 
     def __repr__(self):
         """
@@ -274,7 +229,7 @@ class TTTNeuralNet(object):
     def export(self, file_path):
         """
         Creates a new txt file at file_path, replacing the existing file at that location if needed, containing the
-        output of the __repr__ function of each neuron found in this network, seperated by newlines
+        output of the __repr__ function of each neuron found in this network, separated by newlines
         """
 
         with open(file_path, 'w') as exportFile:
@@ -325,7 +280,9 @@ class TTTNeuralNet(object):
         """
 
         input_set = [self.pieceValues[0] if turn == 'x' else self.pieceValues[1]]
+        print input_set
         [input_set.extend([self.pieceValues[0] if b == 'x' else self.pieceValues[1] for b in a]) for a in sBoard]
+        print input_set
 
         output = self.feed(input_set)
         highest = 0
@@ -380,10 +337,20 @@ class TTTNeuralNet(object):
 
 def loadAI(path_to_net):
     """
-    Copies path_to_net to ai_default
-    :param path_to_net:
-    :return:
+    Copies path_to_net to ai.txt, so that it may be used in the game
+    :param path_to_net: Path to txt file containing the results of the export method in the TTTNeuralNet class
+    :return: 1 if failure, 0 if success
     """
+
+    # try loading the file first to see if it's valid
+    testNet = TTTNeuralNet()
+    try:
+        testNet.load(path_to_net)
+    except Exception:
+        raise TypeError("The net found at {} is not valid: {}".format(path_to_net, Exception.message))
+
+    here = os.path.abspath(os.path.dirname(__file__))
+    testNet.export(os.path.join(os.path.join(os.path.join(here, ".."), "data"), "ai.txt"))
 
 
 class TTTPopulation(object):
@@ -477,6 +444,68 @@ class TTTPopulation(object):
         return fittest
 
 
+def calcFitness(nn1, nn2):
+    """
+    Calculates the fitness of nn1 and nn2 by placing them against each other in a game of tic-tac-toe. Each
+    neural network will have a chance to go first
+    :param nn1: Neural network 1
+    :param nn2: Neural network 2
+    :return: The fitness scores for each neural network [fitness1, fitness2]
+    """
+
+    gameOver = False
+    overlapCounter = 0  # if 2
+    turn = 0  # 0 for x, 1 for o
+    players = [nn1, nn2]
+    board = TTTBoard()
+
+    while not gameOver and overlapCounter < 2:
+        endTurn = False  # this will allow for the 'turn checker' to end turns, yet keep the turns cycling
+        while not endTurn:
+
+            move = board.translateNumToPos(players[turn].getMove(turn, board.sBoard))
+
+            # check if move was valid, if not end turn, deduct points and add 1 to overlap counter
+            if not board.isValidMove(move):
+                players[turn].fitness += OVERLAPDOC
+                overlapCounter += 1
+                turn = int(not turn)
+                endTurn = True
+
+            board.setPiece(move, turn)
+
+            # check if move blocks opponent
+            if board.checkForBlocks(move) is True:
+                players[turn].fitness += BLOCKOPP
+
+            # check if move wins game
+            gameStatus = board.checkForWin(move, retInt=True)
+            if gameStatus == turn:
+                players[turn].fitness += GAMEWIN
+                players[int(not turn)].fitness += GAMELOSS
+                gameOver = True
+            elif gameStatus == 2:  # 2 is for a tie
+                players[turn].fitness += TIEGAME
+                players[int(not turn)].fitness += TIEGAME
+                gameOver = True
+
+
+def worker(queue):
+    """
+    Multiprocessing worker class that will take in a queue of nets and match them together
+    """
+
+    logging.info("Worker starting")
+    total = 0
+    while True:
+        try:
+            calcFitness(*queue.get(True, 0.1))
+            total += 1
+        except:  # queue is empty, raises error
+            break
+    logging.info("Worker ending, {} games played".format(total))
+
+
 class TTTrainer(object):
     """
     Trains two populations. Logging module must be imported or the global variable logging must be accounted for.
@@ -494,18 +523,10 @@ class TTTrainer(object):
         self.numPopulation = population
         self.populations = [TTTPopulation(self.numPopulation), TTTPopulation(self.numPopulation)]
         self.pop1, self.pop2 = self.populations[:]
-        # if the top fitness score hasn't changed in self.genCutOff generations, the testing is stopped
-        self.genSameMax = 80
-        # if the top fitness score hasn't been the same for self.genCutOff generations, the testing is topped
-        self.genStop = 200
-
-        self.GAMEWIN = 30
-        self.GAMELOSS = -30
-        self.TIEGAME = 15
-        self.BLOCKOPP = 10
-        # self.SETUPWIN = 10
-        self.MOVEDOC = -1
-        self.OVERLAPDOC = -20
+        # if the top fitness score hasn't changed in self.genSameMax generations, the testing is stopped
+        self.genSameMax = 200
+        # testing stops after genStop many generations has been reached
+        self.genStop = 250
 
     def train(self):
         """
@@ -519,6 +540,15 @@ class TTTrainer(object):
         previousFitness = TTTNeuralNet(fitness=-500)
         highest = None
 
+        logging.info("Note: {} workers will be used- 1 for each cpu)".format(mp.cpu_count()))
+        queues = [mp.Queue() for x in range(mp.cpu_count())]
+        # holds indices for self.numPopulation that splits the pop into equal amounts based on how many cpus are
+        # available (exmaple: if 4 cpus are available then it could look like this: [[0, 4], [4, 8], [8, 12], [12, 16]])
+        ranges = []
+        for x in range(mp.cpu_count()):
+            ranges.append([int(self.numPopulation * (x / float(mp.cpu_count()))), int(
+                                self.numPopulation * ((x + 1) / float(mp.cpu_count())))])
+
         while gensSame < self.genSameMax and generation <= self.genStop:
             logging.info("Starting generation {}".format(generation))
 
@@ -528,22 +558,32 @@ class TTTrainer(object):
 
             # matches every single net against one another.
             logging.info("Matching neural networks together")
-            for net1 in range(self.numPopulation):
-                for net2 in range(self.numPopulation):
-                    self.calcFitness(self.pop1.nets[net1], self.pop2.nets[net2])
-                    # log percentage complete
-                if net1 % (self.numPopulation / 10.0) == 0:
-                    logging.info("{}%".format((float(net1) / self.numPopulation) * 100))
+            logging.debug("Filling queues with info")
+            for queue in range(len(queues)):
+                for net1 in self.pop1.nets[ranges[queue][0]:ranges[queue][1]]:
+                    for net2 in self.pop2.nets:
+                        queues[queue].put([net1, net2])
+
+            logging.debug("Starting processes")
+            processes = []
+            for index in range(mp.cpu_count()):
+                process = mp.Process(target=worker, args=(queues[index], ))
+                process.start()
+                processes.append(process)
+
+            logging.debug("Waiting for calculations to complete...")
+            for num, process in enumerate(processes):
+                process.join()  # makes sure each process is finished before moving on
 
             logging.info("Fitness calculations complete. Ending generation.")
             fittest1 = self.pop1.nextGen()  # pcmr
             fittest2 = self.pop2.nextGen()
 
-            highest = fittest1 if fittest1 > fittest2 else fittest2
+            highest = fittest1 if fittest1.fitness > fittest2.fitness else fittest2
             logging.info("Highest fitness of the generation: {}".format(highest))
-            if highest == previousFitness:
+            if highest.fitness == previousFitness.fitness:
                 gensSame += 1
-                logging.info("Fitness score was the same, now has been for {} generations".format(gensSame))
+                logging.info("Fitness score is the same and now has been for {} generations".format(gensSame))
                 previousFitness = highest.copy()
             else:
                 logging.info("Fittest score has changed from {} to {}.".format(previousFitness, highest))
@@ -557,50 +597,8 @@ class TTTrainer(object):
             logging.info("Training has completed because the highest fitness score hasn't changed in {} "
                          "generations".format(self.genSameMax))
 
+        # close down the queues
+        for queue in queues:
+            queue.close()
+
         return highest
-
-    def calcFitness(self, nn1, nn2):
-        """
-        Calculates the fitness of nn1 and nn2 by placing them against each other in a game of tic-tac-toe. Each
-        neural network will have a chance to go first
-        :param nn1: Neural network 1
-        :param nn2: Neural network 2
-        :return: The fitness scores for each neural network [fitness1, fitness2]
-        """
-
-        gameOver = False
-        overlapCounter = 0  # if 2
-        turn = 0  # 0 for x, 1 for o
-        players = [nn1, nn2]
-        board = TTTBoard()
-
-        while not gameOver and overlapCounter < 2:
-            endTurn = False  # this will allow for the 'turn checker' to end turns, yet keep the turns cycling
-            while not endTurn:
-
-                move = board.translateNumToPos(players[turn].getMove(turn, board.sBoard))
-
-                # check if move was valid, if not end turn, deduct points and add 1 to overlap counter
-                if not board.isValidMove(move):
-                    players[turn].fitness += self.OVERLAPDOC
-                    overlapCounter += 1
-                    turn = int(not turn)
-                    endTurn = True
-
-                board.setPiece(move, turn)
-
-                # check if move blocks opponent
-                if board.checkForBlocks(move) is True:
-                    players[turn].fitness += self.BLOCKOPP
-
-                # check if move wins game
-                gameStatus = board.checkForWin(move, retInt=True)
-                if gameStatus == turn:
-                    players[turn].fitness += self.GAMEWIN
-                    players[int(not turn)] += self.GAMELOSS
-                    gameOver = True
-                elif gameStatus == 2:  # 2 is for a tie
-                    players[turn].fitness += self.TIEGAME
-                    players[int(not turn)].fitness += self.TIEGAME
-                    gameOver = True
-
