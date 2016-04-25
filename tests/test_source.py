@@ -9,6 +9,8 @@ import datetime
 from nose2.tools import such
 from tttio import ai, boards, tttoe
 
+logging.getLogger().setLevel(logging.INFO)
+
 with such.A('system running on linux, windows or osx, python version 2.7') as it:
 
     with it.having('all data files are in the correct location'):
