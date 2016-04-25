@@ -7,9 +7,11 @@ import logging
 import os
 import datetime
 from nose2.tools import such
+import tttio
 from tttio import ai, boards, tttoe
 
 logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().removeHandler(tttio.consoleHandler)
 
 with such.A('system running on linux, windows or osx, python version 2.7') as it:
 
